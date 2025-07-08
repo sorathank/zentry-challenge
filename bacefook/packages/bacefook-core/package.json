@@ -1,10 +1,14 @@
 {
-  "name": "bacefook-core",
+  "name": "@repo/bacefook-core",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "start": "ts-node src/index.ts",
+    "build": "tsc",
     "test": "jest"
+  },
+  "exports": {
+    ".": "./src/index.ts"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
