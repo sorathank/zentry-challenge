@@ -9,7 +9,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # - postgres_data:/var/lib/postgresql/data
       - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
 
   redis:
@@ -17,10 +17,10 @@ services:
     container_name: bacefook-redis-queue
     ports:
       - "6379:6379"
-    volumes:
-      - redis_data:/data
+    # volumes:
+    #   - redis_data:/data
     command: redis-server --appendonly yes
 
 volumes:
   postgres_data:
-  redis_data: 
+  # redis_data: 
