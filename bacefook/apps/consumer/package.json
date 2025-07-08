@@ -13,10 +13,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@repo/bacefook-core": "*",
+    "bacefook-core": "*",
     "redis": "^4.6.11"
   },
   "devDependencies": {
+    "@repo/typescript-config": "*",
     "@types/node": "^20.10.5",
     "tsx": "^4.6.2",
     "typescript": "^5.3.3"
