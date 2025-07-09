@@ -1,6 +1,10 @@
 # Bacefook
 
-A social network analytics platform for visualizing relationship networks, friendships, and referral chains.
+Zentry Backend Assignment
+
+- Analytics Page: Done
+- User Profile: Not Start
+- Performance ~ 50k transactions / 5 seconds (on my own local)
 
 ## Overall Design
 
@@ -107,7 +111,7 @@ erDiagram
 - **`@repo/eslint-config`**: Shared ESLint configurations
 - **`@repo/typescript-config`**: Shared TypeScript configurations
 
-## How to Run
+## Setup
 
 ### Prerequisites
 
@@ -115,8 +119,19 @@ erDiagram
 - node v18+
 
 ### Run on local
-<!-- TODO: Add installation steps -->
+1. Make sure you are in bacefook directory
 
+```bash
+cd bacefook
+```
+
+2. Start PostgreSQL and Redis containers using docker compose
+
+```bash
+docker-compose up -d
+```
+
+1. 
 
 ### Testing
 ```bash
