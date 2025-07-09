@@ -59,7 +59,7 @@ export class Worker {
 
         if (transactions.length > 0) {
           // Process large batches in parallel chunks for better performance
-          const chunkSize = Math.min(5000, Math.ceil(transactions.length / 4));
+          const chunkSize = Math.min(10000, Math.ceil(transactions.length / 4));
           const chunks = this.chunkArray(transactions, chunkSize);
 
           if (chunks.length > 1) {
