@@ -1,11 +1,3 @@
-# Welcome, candidate!
+# Hello!
 
-Pick your poison! You can choose to do either based on your current skillset. We recommend [backend](/backend) for fullstack and backend software engineers and [frontend](/frontend) for those who are familiar with the way of the web.
-
-## Time Limit
-
-Backend: up to 5 days
-
-Frontend: up to 7 days
-
-Goodluck!
+Proper README.md is here https://github.com/sorathank/zentry-challenge/tree/main/bacefook#readme
