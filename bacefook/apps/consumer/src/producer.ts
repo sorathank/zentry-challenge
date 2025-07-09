@@ -18,12 +18,12 @@ export class TransactionProducer {
 
   async start(): Promise<void> {
     console.log(
-      `Starting transaction producer with batch size: ${config.producer.batchSize}`
+      `Starting transaction producer with new user per batch: ${config.producer.newUserBatchSize}`
     );
 
     console.log(`Consuming message every ${config.producer.intervalMs}ms`);
 
-    const eventStream = this.generator.stream(config.producer.batchSize);
+    const eventStream = this.generator.stream(config.producer.newUserBatchSize);
 
     const processEvents = async () => {
       try {
