@@ -61,7 +61,7 @@ REDIS_PORT=6379
 REDIS_DB=0
 
 # Worker Configuration
-BATCH_SIZE=10000
+BATCH_SIZE=20000
 QUEUE_NAME=transactions
 ```
 
