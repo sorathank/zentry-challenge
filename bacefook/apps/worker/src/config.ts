@@ -13,9 +13,9 @@ export const config = {
     url: process.env["DATABASE_URL"],
   },
   worker: {
-    batchSize: parseInt(process.env["BATCH_SIZE"] || "10000"),
+    batchSize: parseInt(process.env["BATCH_SIZE"] || "100000"),
     queueName: process.env["QUEUE_NAME"] || "transactions",
-    concurrency: parseInt(process.env["WORKER_CONCURRENCY"] || "8"),
+    concurrency: parseInt(process.env["WORKER_CONCURRENCY"] || "1"),
     maxRetries: parseInt(process.env["MAX_RETRIES"] || "3"),
   },
 };

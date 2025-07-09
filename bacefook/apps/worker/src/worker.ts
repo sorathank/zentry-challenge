@@ -11,11 +11,13 @@ export class Worker {
   private readonly concurrency: number;
   private processedCount: number = 0;
   private startTime: number = 0;
+  private readonly maxBatchSize: number;
 
-  constructor() {
+  constructor(concurrency?: number) {
     this.redisClient = new RedisClient();
     this.databaseClient = new DatabaseClient();
-    this.concurrency = config.worker.concurrency;
+    this.concurrency = concurrency || config.worker.concurrency;
+    this.maxBatchSize = config.worker.batchSize;
   }
 
   async initialize(): Promise<void> {
@@ -29,7 +31,7 @@ export class Worker {
     this.startTime = Date.now();
     
     console.log(`Worker started with ${this.concurrency} concurrent workers`);
-    console.log(`Batch size: ${config.worker.batchSize}`);
+    console.log(`Max batch size: ${this.maxBatchSize}`);
 
     // Start multiple worker processes in parallel
     this.workers = Array.from({ length: this.concurrency }, (_, i) => 
@@ -52,16 +54,28 @@ export class Worker {
         
         const transactions: ConnectionEvent[] = await this.redisClient.popBatch(
           config.worker.queueName,
-          config.worker.batchSize
+          this.maxBatchSize
         );
 
         if (transactions.length > 0) {
-          await this.databaseClient.processBatch(transactions);
+          // Process large batches in parallel chunks for better performance
+          // const chunkSize = Math.min(5000, Math.ceil(transactions.length / 4));
+          // const chunks = this.chunkArray(transactions, chunkSize);
+          
+          // if (chunks.length > 1) {
+          //   // Process chunks in parallel
+          //   await Promise.all(
+          //     chunks.map(chunk => this.databaseClient.processBatch(chunk))
+          //   );
+          // } else {
+          //   // Process single batch
+            await this.databaseClient.processBatch(transactions);
+          // }
           
           const processingTime = Date.now() - startTime;
           this.processedCount += transactions.length;
           
-          console.log(`Worker ${workerId}: Processed ${transactions.length} transactions in ${processingTime}ms`);
+          console.log(`Worker ${workerId}: Processed ${transactions.length} transactions in ${processingTime}ms (${(transactions.length / processingTime * 1000).toFixed(0)} tx/s)`);
           
           // Log transaction type distribution
           const typeCounts = transactions.reduce(
@@ -74,15 +88,23 @@ export class Worker {
           console.log(`Worker ${workerId} types:`, typeCounts);
         } else {
           // No transactions, wait a bit before checking again
-          await this.sleep(100); // Reduced sleep time for faster polling
+          await this.sleep(50); // Further reduced sleep time for faster polling
         }
       } catch (error) {
         console.error(`Worker ${workerId} error:`, error);
-        await this.sleep(100); // Wait on error
+        await this.sleep(200); // Wait on error
       }
     }
     
     console.log(`Worker ${workerId} stopped`);
+  }
+
+  private chunkArray<T>(array: T[], chunkSize: number): T[][] {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += chunkSize) {
+      chunks.push(array.slice(i, i + chunkSize));
+    }
+    return chunks;
   }
 
   private startPerformanceMonitoring(): void {
@@ -92,7 +114,15 @@ export class Worker {
       
       console.log(`Performance: ${this.processedCount} transactions processed in ${elapsedSeconds.toFixed(1)}s`);
       console.log(`Average rate: ${transactionsPerSecond.toFixed(0)} transactions/second`);
-    }, 5000); // Report every 5 seconds
+      
+      // Log progress towards 100k in 5 seconds
+      if (elapsedSeconds >= 5) {
+        const targetIn5Seconds = 100000;
+        const actualIn5Seconds = Math.min(this.processedCount, targetIn5Seconds);
+        const percentage = (actualIn5Seconds / targetIn5Seconds * 100).toFixed(1);
+        console.log(`Progress towards 100k in 5s: ${actualIn5Seconds}/100000 (${percentage}%)`);
+      }
+    }, 2000); // Report every 2 seconds for better monitoring
   }
 
   async stop(): Promise<void> {

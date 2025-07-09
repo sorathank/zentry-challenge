@@ -29,34 +29,48 @@ export class RedisClient {
   async popBatch(queueName: string, batchSize: number): Promise<ConnectionEvent[]> {
     const transactions: ConnectionEvent[] = [];
     
-    // Use optimized batch popping with pipeline
-    const pipeline = this.client.multi();
-    
-    // Queue multiple pops in pipeline
-    for (let i = 0; i < batchSize; i++) {
-      pipeline.rPop(queueName);
-    }
-    
     try {
+      const pipeline = this.client.multi();
+      
+      for (let i = 0; i < batchSize; i++) {
+        pipeline.rPop(queueName);
+      }
+      
       const results = await pipeline.exec();
       
-      if (results) {
+      if (Array.isArray(results)) {
         for (const result of results) {
-          // Redis pipeline returns [error, value] tuples
-          const [error, value] = result as [Error | null, string | null];
-          
-          if (!error && value) {
+          if (result && typeof result === 'string') {
             try {
-              const transaction = parseTransaction(value);
+              const transaction = parseTransaction(result);
               transactions.push(transaction);
             } catch (parseError) {
-              console.error(`Failed to parse transaction: ${parseError}. Raw data: ${value}`);
+              console.error(`Failed to parse transaction: ${parseError}. Raw data: ${result}`);
             }
           }
         }
       }
     } catch (error) {
       console.error('Redis pipeline error:', error);
+      
+      // Fallback to individual operations if pipeline fails
+      try {
+        for (let i = 0; i < batchSize; i++) {
+          const result = await this.client.rPop(queueName);
+          if (result) {
+            try {
+              const transaction = parseTransaction(result);
+              transactions.push(transaction);
+            } catch (parseError) {
+              console.error(`Failed to parse transaction: ${parseError}. Raw data: ${result}`);
+            }
+          } else {
+            break; // No more items in queue
+          }
+        }
+      } catch (fallbackError) {
+        console.error('Redis fallback error:', fallbackError);
+      }
     }
     
     return transactions;
