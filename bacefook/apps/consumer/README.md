@@ -40,7 +40,7 @@ Configure the application using environment variables:
 npm run dev
 
 # Start with custom configuration
-BATCH_SIZE=50 INTERVAL_MS=500 npm run dev
+NEW_USER_BATCH_SIZE=50 INTERVAL_MS=500 npm run dev
 ```
 
 ## 📊 Output and Monitoring
@@ -48,14 +48,12 @@ BATCH_SIZE=50 INTERVAL_MS=500 npm run dev
 The producer provides logging and queue length:
 
 ```bash
-Starting transaction producer with batch size: 10
+Starting transaction producer with new user per batch: 10
 Consuming message every 1000ms
 Connected to Redis at localhost:6379
 Added 10 transactions to queue. Queue length: 10
 Queue length: 45
 ```
-
-
 
 - **TransactionProducer**: Main service orchestrator
 - **RedisQueue**: Redis client wrapper with queue operations
@@ -90,6 +88,7 @@ redis-cli -h localhost -p 6379 monitor
 ## 🧪 Testing
 
 ### Unit Tests
+
 ```bash
 npm test
 ```
@@ -98,7 +97,7 @@ npm test
 
 The producer will generate transaction events and add them to the Redis queue. You'll see output like:
 
-```
+```log
 Starting transaction producer with batch size: 10000
 Consuming message every 1000ms
 Added 681525 transactions to queue. Queue length: 681525
