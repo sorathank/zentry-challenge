@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '../../../../lib/database';
+import { NetworkService } from '../../../../lib/NetworkService';
+
+const networkService = new NetworkService(db);
 
 export async function GET(
   request: Request,
@@ -10,21 +13,10 @@ export async function GET(
     const userName = decodeURIComponent(name);
     console.log('Fetching network data for user:', userName);
 
-    // Find the user
-    const user = await db.user.findUnique({
-      where: {
-        name: userName,
-      },
-      select: {
-        id: true,
-        name: true,
-        createdAt: true,
-      },
-    });
+    // Get network data using the service
+    const networkData = await networkService.getNetworkByUserName(userName);
 
-    console.log('User found:', user);
-
-    if (!user) {
+    if (!networkData) {
       const notFoundResponse = NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
@@ -37,93 +29,6 @@ export async function GET(
       
       return notFoundResponse;
     }
-
-    // Get user's friends
-    const friendships = await db.friendship.findMany({
-      where: {
-        OR: [
-          { user1Id: user.id },
-          { user2Id: user.id },
-        ],
-      },
-      include: {
-        user1: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        user2: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
-
-    // Format friends data
-    const friends = friendships.map(friendship => {
-      const friend = friendship.user1Id === user.id ? friendship.user2 : friendship.user1;
-      return {
-        id: friend.id,
-        name: friend.name,
-        status: friendship.status,
-        createdAt: friendship.createdAt,
-      };
-    });
-
-    // Get referrals given by the user
-    const referralsGiven = await db.referral.findMany({
-      where: {
-        referrerId: user.id,
-      },
-      include: {
-        referred: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
-
-    // Get referrals received by the user
-    const referralsReceived = await db.referral.findMany({
-      where: {
-        referredId: user.id,
-      },
-      include: {
-        referrer: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
-
-    // Format the response
-    const networkData = {
-      user: {
-        id: user.id,
-        name: user.name,
-        createdAt: user.createdAt,
-      },
-      friends: friends,
-      referrals: {
-        given: referralsGiven.map(referral => ({
-          id: referral.referred.id,
-          name: referral.referred.name,
-          referredAt: referral.createdAt,
-        })),
-        received: referralsReceived.map(referral => ({
-          id: referral.referrer.id,
-          name: referral.referrer.name,
-          referredAt: referral.createdAt,
-        })),
-      },
-    };
 
     const response = NextResponse.json(networkData);
     
