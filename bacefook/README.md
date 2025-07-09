@@ -137,7 +137,15 @@ erDiagram
     docker-compose up -d
     ```
 
-3. Generate Types from Prisma schema for `api` and `worker` -- Note: this could be shared module IMO.
+3. Copy .env.example file to .env file for each application
+
+    ```bash
+    cp ./apps/api/.env.example ./apps/api/.env
+    cp ./apps/consumer/.env.example ./apps/consumer/.env
+    cp ./apps/worker/.env.example ./apps/worker/.env
+    ```
+
+4. Generate Types from Prisma schema for `api` and `worker` -- Note: this could be shared module IMO.
 
     ```bash
     cd apps/api
@@ -150,20 +158,12 @@ erDiagram
     npm run db:migrate --y
     ```
 
-4. Try compile the whole project
+5. Try compile the whole project
 
     ```bash
     # Go back to /bacefook
     cd ../../
     npm run build
-    ```
-
-5. Copy .env.example file to .env file for each application
-
-    ```bash
-    cp ./apps/api/.env.example ./apps/api/.env
-    cp ./apps/consumer/.env.example ./apps/consumer/.env
-    cp ./apps/worker/.env.example ./apps/worker/.env
     ```
 
 We should be able to continue on testing now
