@@ -20,7 +20,7 @@ export const config: Config = {
     db: parseInt(process.env.REDIS_DB || "0"),
   },
   producer: {
-    batchSize: parseInt(process.env.BATCH_SIZE || "100000"),
+    batchSize: parseInt(process.env.BATCH_SIZE || "10000"),
     intervalMs: parseInt(process.env.INTERVAL_MS || "1000"),
     queueName: process.env.QUEUE_NAME || "transactions",
   },
