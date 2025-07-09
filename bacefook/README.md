@@ -208,7 +208,7 @@ After that, we can test the performance of worker (consuming event to DB) later
    **Known issue - recommend using only 1 worker to avoid db deadlock**
 
    ```text
-    BATCH_SIZE=10000
+    BATCH_SIZE=20000
     WORKER_CONCURRENCY=1
     QUEUE_NAME=transactions
    ```

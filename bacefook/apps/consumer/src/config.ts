@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+
+dotenv.config();
 export interface Config {
   redis: {
     host: string;
@@ -20,7 +23,7 @@ export const config: Config = {
     db: parseInt(process.env.REDIS_DB || "0"),
   },
   producer: {
-    newUserBatchSize: parseInt(process.env.NEW_USER_BATCH_SIZE || "10"),
+    newUserBatchSize: parseInt(process.env.PRODUCER_NEW_USER_BATCH_SIZE || "10"),
     intervalMs: parseInt(process.env.INTERVAL_MS || "1000"),
     queueName: process.env.QUEUE_NAME || "transactions",
   },
