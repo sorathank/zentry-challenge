@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  sentFriendRequests     Friendship[] @relation("FriendshipUser1")
+  receivedFriendRequests Friendship[] @relation("FriendshipUser2")
+  
+  referralsGiven    Referral[] @relation("ReferrerUser")
+  referralsReceived Referral[] @relation("ReferredUser")
+
+  transactions TransactionLog[]
+  @@map("users")
+}
+
+model Friendship {
+  id        Int      @id @default(autoincrement())
+  user1Id   Int      @map("user1_id")
+  user2Id   Int      @map("user2_id")
+  status    FriendshipStatus @default(ACTIVE)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user1 User @relation("FriendshipUser1", fields: [user1Id], references: [id])
+  user2 User @relation("FriendshipUser2", fields: [user2Id], references: [id])
+
+  @@unique([user1Id, user2Id])
+  @@map("friendships")
+}
+
+model Referral {
+  id          Int      @id @default(autoincrement())
+  referrerId  Int      @map("referrer_id")
+  referredId  Int      @map("referred_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  referrer User @relation("ReferrerUser", fields: [referrerId], references: [id])
+  referred User @relation("ReferredUser", fields: [referredId], references: [id])
+
+  @@unique([referrerId, referredId])
+  @@map("referrals")
+}
+
+model TransactionLog {
+  id            Int      @id @default(autoincrement())
+  userId        Int?     @map("user_id")
+  transactionType String @map("transaction_type")
+  transactionData Json   @map("transaction_data")
+  processedAt   DateTime @default(now()) @map("processed_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("transaction_logs")
+}
+
+enum FriendshipStatus {
+  ACTIVE
+  INACTIVE
+} 

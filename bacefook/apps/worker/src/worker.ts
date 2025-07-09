@@ -86,7 +86,7 @@ export class Worker {
           console.log(`Worker ${workerId} types:`, typeCounts);
         } else {
           // No transactions, wait a bit before checking again
-          await this.sleep(50); // Further reduced sleep time for faster polling
+          await this.sleep(5000); // Further reduced sleep time for faster polling
         }
       } catch (error) {
         console.error(`Worker ${workerId} error:`, error);
