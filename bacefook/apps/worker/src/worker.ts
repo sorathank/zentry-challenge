@@ -12,10 +12,10 @@ export class Worker {
   private processedCount: number = 0;
   private startTime: number = 0;
 
-  constructor(concurrency: number = 8) {
+  constructor() {
     this.redisClient = new RedisClient();
     this.databaseClient = new DatabaseClient();
-    this.concurrency = concurrency;
+    this.concurrency = config.worker.concurrency;
   }
 
   async initialize(): Promise<void> {

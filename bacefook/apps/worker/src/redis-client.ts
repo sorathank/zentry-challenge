@@ -29,25 +29,34 @@ export class RedisClient {
   async popBatch(queueName: string, batchSize: number): Promise<ConnectionEvent[]> {
     const transactions: ConnectionEvent[] = [];
     
+    // Use optimized batch popping with pipeline
     const pipeline = this.client.multi();
     
+    // Queue multiple pops in pipeline
     for (let i = 0; i < batchSize; i++) {
       pipeline.rPop(queueName);
     }
     
-    const results = await pipeline.exec();
-    
-    if (results) {
-      for (const result of results) {
-        if (result && typeof result === 'string') {
-          try {
-            const transaction = parseTransaction(result);
-            transactions.push(transaction);
-          } catch (error) {
-            console.error(`Failed to parse transaction: ${error}. Raw data: ${result}`);
+    try {
+      const results = await pipeline.exec();
+      
+      if (results) {
+        for (const result of results) {
+          // Redis pipeline returns [error, value] tuples
+          const [error, value] = result as [Error | null, string | null];
+          
+          if (!error && value) {
+            try {
+              const transaction = parseTransaction(value);
+              transactions.push(transaction);
+            } catch (parseError) {
+              console.error(`Failed to parse transaction: ${parseError}. Raw data: ${value}`);
+            }
           }
         }
       }
+    } catch (error) {
+      console.error('Redis pipeline error:', error);
     }
     
     return transactions;

@@ -1,3 +1,7 @@
+import dotenv from "dotenv";
+
+dotenv.config();
+
 import { Worker } from "./worker";
 
 async function main(): Promise<void> {
