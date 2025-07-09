@@ -17,15 +17,18 @@
     "clean": "rm -rf dist coverage",
     "prebuild": "npm run clean",
     "prestart": "npm run build",
-    "ci": "npm run typecheck && npm run lint && npm run test:coverage"
+    "ci": "npm run typecheck && npm run lint && npm run test:coverage",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.10.5",
-    "@types/pg": "^8.11.0",
     "jest": "^29.7.0",
+    "prisma": "^5.7.0",
     "ts-jest": "^29.4.0",
     "tsx": "^4.6.2",
     "typescript": "^5.3.3"
