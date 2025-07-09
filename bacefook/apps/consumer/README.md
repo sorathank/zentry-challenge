@@ -99,7 +99,10 @@ npm test
 The producer will generate transaction events and add them to the Redis queue. You'll see output like:
 
 ```
-Starting transaction producer with batch size: 10, interval: 1000ms
-Added 10 transactions to queue. Queue length: 10
-Queue Length: 45
+Starting transaction producer with batch size: 10000
+Consuming message every 1000ms
+Added 681525 transactions to queue. Queue length: 681525
+Added 151811 transactions to queue. Queue length: 833336
+Added 128986 transactions to queue. Queue length: 962322
+Queue Length: 962322
 ```
