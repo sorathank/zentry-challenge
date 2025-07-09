@@ -16,6 +16,5 @@ export const config = {
     batchSize: parseInt(process.env["BATCH_SIZE"] || "15000"),
     queueName: process.env["QUEUE_NAME"] || "transactions",
     concurrency: parseInt(process.env["WORKER_CONCURRENCY"] || "8"),
-    maxRetries: parseInt(process.env["MAX_RETRIES"] || "3"),
   },
 };
