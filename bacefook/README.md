@@ -118,31 +118,116 @@ erDiagram
 - docker
 - node v18+
 
-### Run on local
-1. Make sure you are in bacefook directory
+### Install Dependencies and set environment
 
-```bash
-cd bacefook
-```
+1. Make sure you are in bacefook directory and install all required dependencies
+
+    ```bash
+    npm install turbo --global
+    ```
+
+    ```bash
+    cd bacefook
+    npm install
+    ```
 
 2. Start PostgreSQL and Redis containers using docker compose
 
-```bash
-docker-compose up -d
-```
+    ```bash
+    docker-compose up -d
+    ```
 
-1. 
+3. Generate Types from Prisma schema for `api` and `worker` -- Note: this could be shared module IMO.
 
-### Testing
+    ```bash
+    cd apps/api
+    npm run db:generate
+    ```
+
+    ```bash
+    cd ../worker
+    npm run db:generate
+    npm run db:migrate --y
+    ```
+
+4. Try compile the whole project
+
+    ```bash
+    # Go back to /bacefook
+    cd ../../
+    npm run build
+    ```
+
+5. Copy .env.example file to .env file for each application
+
+    ```bash
+    cp ./apps/api/.env.example ./apps/api/.env
+    cp ./apps/consumer/.env.example ./apps/consumer/.env
+    cp ./apps/worker/.env.example ./apps/worker/.env
+    ```
+
+We should be able to continue on testing now
+
+## Demo
+
+I recommend to generate a small amount of data to test Analytics Page Feature first.
+
+After that, we can test the performance of worker (consuming event to DB) later
+
+### Analytics Page Testing
+
+1. Make sure your PostgreSQL and Redis containers are still running.
+2. Make sure you're at `/bacefook` directory and start every app via turbo to generate some data for ~10 seconds
+
+   ```bash
+   npm run dev
+   ```
+
+3. stop the applications using `Ctrl + C`
+4. start `api` service
+
+   ```bash
+    cd ./apps/api
+    npm run dev
+   ```
+5. start `web` service using new terminal
+   ```bash
+   cd bacefook/apps/web
+   npm run dev
+   ```
+6. Go to http://localhost:3000/
+7. Click View Network Relationships
+8. Put sample user i.e., `user00001` and click search
+
+### Performance Testing
+
+1. Make sure your PostgreSQL and Redis containers are still running.
+2. Make sure you're at `/bacefook` directory
+3. Edit your `/bacefook/apps/worker/.env` to have more larger batch size / worker concurrency.
+
+   **Known issue - recommend using only 1 worker to avoid db deadlock**
+
+   ```text
+    BATCH_SIZE=10000
+    WORKER_CONCURRENCY=1
+    QUEUE_NAME=transactions
+   ```
+
+4. Edit your `/bacefook/apps/consumer/.env` to have more larger batch size / worker concurrency.
+
+   ```text
+    PRODUCER_NEW_USER_BATCH_SIZE=1000
+    WORKER_CONCURRENCY=1
+    QUEUE_NAME=transactions
+   ```
+
+5. monitor performance in worker task
+
+### Unit Testing
+
 ```bash
 # Run all tests
 npm run test
-
-# Run tests with coverage
-npm run test:coverage
-
-# Run tests in watch mode
-npm run test:watch
 ```
 
 ## Project Structure
