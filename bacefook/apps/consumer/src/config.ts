@@ -15,13 +15,13 @@ export interface Config {
 export const config: Config = {
   redis: {
     host: process.env.REDIS_HOST || "localhost",
-    port: parseInt(process.env.REDIS_PORT || "6379", 10),
+    port: parseInt(process.env.REDIS_PORT || "6379"),
     password: process.env.REDIS_PASSWORD,
-    db: parseInt(process.env.REDIS_DB || "0", 10),
+    db: parseInt(process.env.REDIS_DB || "0"),
   },
   producer: {
-    batchSize: parseInt(process.env.BATCH_SIZE || "10", 10),
-    intervalMs: parseInt(process.env.INTERVAL_MS || "1000", 10),
+    batchSize: parseInt(process.env.BATCH_SIZE || "100000"),
+    intervalMs: parseInt(process.env.INTERVAL_MS || "1000"),
     queueName: process.env.QUEUE_NAME || "transactions",
   },
 };
