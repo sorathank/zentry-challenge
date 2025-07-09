@@ -139,6 +139,12 @@ export default function NetworkPage() {
           };
           nodes.push(referralNode);
           nodeMap.set(referral.name, referralNode);
+        } else {
+          // Update existing node to referral type (prioritize referral over friend)
+          const existingNode = nodeMap.get(referral.name);
+          if (existingNode) {
+            existingNode.type = "referral";
+          }
         }
 
         links.push({
@@ -161,6 +167,12 @@ export default function NetworkPage() {
           };
           nodes.push(referrerNode);
           nodeMap.set(referral.name, referrerNode);
+        } else {
+          // Update existing node to referral type (prioritize referral over friend)
+          const existingNode = nodeMap.get(referral.name);
+          if (existingNode) {
+            existingNode.type = "referral";
+          }
         }
 
         links.push({
