@@ -220,8 +220,15 @@ After that, we can test the performance of worker (consuming event to DB) later
     INTERVAL=5000
     QUEUE_NAME=transactions
    ```
+   
+5. Start application via terminal
 
-5. monitor performance in worker task
+   ```bash
+   cd bacefook
+   npm run dev
+   ```
+   
+6. monitor performance in worker task
 
 ### Unit Testing
 
