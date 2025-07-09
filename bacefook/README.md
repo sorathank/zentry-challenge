@@ -183,6 +183,9 @@ After that, we can test the performance of worker (consuming event to DB) later
    npm run dev
    ```
 
+   
+![image](https://github.com/user-attachments/assets/6829c1ef-3fd8-432f-97d0-3e28cdf32e41)
+
 3. stop the applications using `Ctrl + C`
 4. start `api` service
 
@@ -198,6 +201,10 @@ After that, we can test the performance of worker (consuming event to DB) later
 6. Go to http://localhost:3000/
 7. Click View Network Relationships
 8. Put sample user i.e., `user00001` and click search
+
+
+![image](https://github.com/user-attachments/assets/5d4002eb-dd2c-45cd-b3d5-1a6f612a6b52)
+
 
 ### Performance Testing
 
