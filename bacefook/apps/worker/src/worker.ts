@@ -75,10 +75,6 @@ export class Worker {
           const processingTime = Date.now() - startTime;
           this.processedCount += transactions.length;
 
-          console.log(
-            `Worker ${workerId}: Processed ${transactions.length} transactions in ${processingTime}ms (${((transactions.length / processingTime) * 1000).toFixed(0)} tx/s)`
-          );
-
           // Log transaction type distribution
           const typeCounts = transactions.reduce(
             (acc, tx) => {
@@ -114,29 +110,15 @@ export class Worker {
       const elapsedSeconds = (Date.now() - this.startTime) / 1000;
       const transactionsPerSecond = this.processedCount / elapsedSeconds;
 
-      console.log(
-        `Performance: ${this.processedCount} transactions processed in ${elapsedSeconds.toFixed(1)}s`
-      );
-      console.log(
-        `Average rate: ${transactionsPerSecond.toFixed(0)} transactions/second`
-      );
-
-      // Log progress towards 100k in 5 seconds
+      const targetIn5Seconds = 100000;
+      
       if (elapsedSeconds >= 5) {
-        const targetIn5Seconds = 100000;
-        const actualIn5Seconds = Math.min(
-          this.processedCount,
-          targetIn5Seconds
-        );
-        const percentage = (
-          (actualIn5Seconds / targetIn5Seconds) *
-          100
-        ).toFixed(1);
+        const targetStatus = transactionsPerSecond >= targetIn5Seconds ? 'ACHIEVED' : 'NOT ACHIEVED';
         console.log(
-          `Progress towards 100k in 5s: ${actualIn5Seconds}/100000 (${percentage}%)`
+          `Actual 5s result: ${this.processedCount / (elapsedSeconds / 5)}/100000 - Target ${targetStatus}`
         );
       }
-    }, 2000); // Report every 2 seconds for better monitoring
+    }, 5000);
   }
 
   async stop(): Promise<void> {

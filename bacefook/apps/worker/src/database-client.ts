@@ -29,7 +29,7 @@ export class DatabaseClient {
   async connect(): Promise<void> {
     await this.prisma.$connect();
     console.log("Connected to PostgreSQL via Prisma");
-
+    
     // Initialize user cache
     await this.refreshUserCache();
   }
@@ -161,7 +161,7 @@ export class DatabaseClient {
     }, 3);
 
     this.userCreationMutex.set(name, userPromise);
-
+    
     try {
       const userId = await userPromise;
       return userId;
@@ -175,19 +175,19 @@ export class DatabaseClient {
     maxRetries: number = 3
   ): Promise<T> {
     let lastError: any;
-
+    
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         return await operation();
       } catch (error: any) {
         lastError = error;
-
+        
         // Check if it's a deadlock error
         const isDeadlock =
           error.message &&
           (error.message.includes("deadlock detected") ||
             error.message.includes("40P01"));
-
+        
         if (isDeadlock && attempt < maxRetries - 1) {
           const delay = Math.pow(2, attempt) * 100 + Math.random() * 100; // Exponential backoff with jitter
           console.warn(
@@ -196,11 +196,11 @@ export class DatabaseClient {
           await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
-
+        
         throw error;
       }
     }
-
+    
     throw lastError;
   }
 
@@ -220,19 +220,11 @@ export class DatabaseClient {
       }
     }
 
-    // Create missing users one by one to avoid deadlocks
+    // Create missing users sequentially to avoid race conditions
     if (usersToCreate.length > 0) {
-      const userCreationPromises = usersToCreate.map((userName) =>
-        this.createUserSafely(userName).then((userId) => ({
-          name: userName,
-          id: userId,
-        }))
-      );
-
-      const createdUsers = await Promise.all(userCreationPromises);
-
-      for (const user of createdUsers) {
-        userMap.set(user.name, user.id);
+      for (const userName of usersToCreate) {
+        const userId = await this.createUserSafely(userName);
+        userMap.set(userName, userId);
       }
     }
 
@@ -251,14 +243,14 @@ export class DatabaseClient {
       // Pre-process all transactions
       const batchData = this.preprocessBatch(transactions);
 
-      // Ensure all users exist
+      // Ensure all users exist (sequential to avoid race conditions)
       const userMap = await this.ensureUsersExist(batchData.newUsers);
 
       // Execute all database operations in a single transaction
       await this.retryOnDeadlock(async () => {
         await this.prisma.$transaction(
           async (tx) => {
-            // Bulk create referrals using Prisma ORM
+            // Bulk create referrals using Prisma ORM (safe to parallel - append only)
             if (batchData.referrals.length > 0) {
               const referralData = batchData.referrals.map((ref) => ({
                 referrerId: userMap.get(ref.referrerId)!,
@@ -271,7 +263,7 @@ export class DatabaseClient {
               });
             }
 
-            // Handle friendships using Prisma ORM upserts
+            // Handle friendships SEQUENTIALLY to avoid race conditions
             if (batchData.friendships.length > 0) {
               const friendshipData = batchData.friendships.map((friendship) => {
                 const user1Id = userMap.get(friendship.user1)!;
@@ -282,36 +274,27 @@ export class DatabaseClient {
                 return { user1Id: smallerId, user2Id: largerId };
               });
 
-              // Process friendships in parallel batches for better performance
-              const chunkSize = 100;
-              for (let i = 0; i < friendshipData.length; i += chunkSize) {
-                const chunk = friendshipData.slice(i, i + chunkSize);
-
-                await Promise.all(
-                  chunk.map((friendship) =>
-                    tx.friendship.upsert({
-                      where: {
-                        user1Id_user2Id: {
-                          user1Id: friendship.user1Id,
-                          user2Id: friendship.user2Id,
-                        },
-                      },
-                      update: {
-                        status: "ACTIVE",
-                        updatedAt: new Date(),
-                      },
-                      create: {
-                        user1Id: friendship.user1Id,
-                        user2Id: friendship.user2Id,
-                        status: "ACTIVE",
-                      },
-                    })
-                  )
-                );
+              for (const friendship of friendshipData) {
+                await tx.friendship.upsert({
+                  where: {
+                    user1Id_user2Id: {
+                      user1Id: friendship.user1Id,
+                      user2Id: friendship.user2Id,
+                    },
+                  },
+                  update: {
+                    status: "ACTIVE",
+                    updatedAt: new Date(),
+                  },
+                  create: {
+                    user1Id: friendship.user1Id,
+                    user2Id: friendship.user2Id,
+                    status: "ACTIVE",
+                  },
+                });
               }
             }
 
-            // Handle unfriendships using Prisma ORM
             if (batchData.unfriendships.length > 0) {
               const unfriendshipData = batchData.unfriendships.map(
                 (unfriendship) => {
@@ -323,30 +306,22 @@ export class DatabaseClient {
                 }
               );
 
-              // Process unfriendships in parallel batches
-              const chunkSize = 100;
-              for (let i = 0; i < unfriendshipData.length; i += chunkSize) {
-                const chunk = unfriendshipData.slice(i, i + chunkSize);
-
-                await Promise.all(
-                  chunk.map((unfriendship) =>
-                    tx.friendship.updateMany({
-                      where: {
-                        user1Id: unfriendship.user1Id,
-                        user2Id: unfriendship.user2Id,
-                        status: "ACTIVE",
-                      },
-                      data: {
-                        status: "INACTIVE",
-                        updatedAt: new Date(),
-                      },
-                    })
-                  )
-                );
+              for (const unfriendship of unfriendshipData) {
+                await tx.friendship.updateMany({
+                  where: {
+                    user1Id: unfriendship.user1Id,
+                    user2Id: unfriendship.user2Id,
+                    status: "ACTIVE",
+                  },
+                  data: {
+                    status: "INACTIVE",
+                    updatedAt: new Date(),
+                  },
+                });
               }
             }
 
-            // Bulk create transaction logs using Prisma ORM
+            // Bulk create transaction logs using Prisma ORM (safe to parallel - append only)
             if (batchData.transactionLogs.length > 0) {
               const logData = batchData.transactionLogs.map((log) => ({
                 userId: userMap.get(log.userName)!,
