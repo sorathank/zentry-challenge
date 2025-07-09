@@ -1,6 +1,6 @@
-import { generator } from "bacefook-core";
 import { RedisQueue } from "./redis-queue";
 import { config } from "./config";
+import { generator } from "@repo/bacefook-core";
 
 export class TransactionProducer {
   private generator: typeof generator;

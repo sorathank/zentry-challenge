@@ -13,7 +13,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "bacefook-core": "*",
+    "@repo/bacefook-core": "*",
     "redis": "^4.6.11"
   },
   "devDependencies": {

@@ -1,8 +1,8 @@
 import { TransactionProducer } from './producer';
-import { generator } from 'bacefook-core';
 import { RedisQueue } from './redis-queue';
+import { generator } from '@repo/bacefook-core';
 
-jest.mock('bacefook-core', () => ({
+jest.mock('@repo/bacefook-core', () => ({
   generator: {
     stream: jest.fn(),
   },
