@@ -228,7 +228,7 @@ After that, we can test the performance of worker (consuming event to DB) later
    npm run dev
    ```
    
-5. monitor performance in worker task
+6. monitor performance in worker task
 
 ### Unit Testing
 
