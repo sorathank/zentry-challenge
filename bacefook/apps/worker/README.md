@@ -9,90 +9,82 @@ A simple worker that consumes transactions from Redis and processes them into Po
 3. Processes each transaction type (register, referral, addfriend, unfriend)
 4. Inserts user data into PostgreSQL
 
+## Database Schema
+
+The worker manages a comprehensive social media database with the following tables:
+
+### Users
+- **id**: Primary key
+- **name**: Unique username
+- **createdAt**: Registration timestamp
+- **updatedAt**: Last modified timestamp
+
+### Friendships
+- **id**: Primary key
+- **user1Id**: First user (smaller ID for consistency)
+- **user2Id**: Second user (larger ID for consistency)
+- **status**: ACTIVE or INACTIVE
+- **createdAt**: Friendship creation timestamp
+- **updatedAt**: Last status change timestamp
+
+### Referrals
+- **id**: Primary key
+- **referrerId**: User who made the referral
+- **referredId**: User who was referred
+- **createdAt**: Referral timestamp
+
+### Transaction Logs
+- **id**: Primary key
+- **userId**: User associated with the transaction
+- **transactionType**: Type of transaction (register, referral, addfriend, unfriend)
+- **transactionData**: Full transaction data (JSON)
+- **processedAt**: When the transaction was processed
+
 ## Setup
+
+### Prerequisites
+- Node.js 18+
+- Redis server
+- PostgreSQL database
+
+### Environment Configuration
+
+Create a `.env` file in the worker directory with the following variables:
+
+```bash
+# Database Configuration
+DATABASE_URL="postgresql://postgres:password@localhost:5432/bacefook"
+
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_DB=0
+
+# Worker Configuration
+BATCH_SIZE=10000
+QUEUE_NAME=transactions
+```
+
+**Note**: Replace `postgres:password` with your actual PostgreSQL username and password.
+
+### Installation
 
 ```bash
 # Install dependencies
 npm install
 
-# Set up the database URL for Prisma
-export DATABASE_URL="postgresql://postgres:yourpassword@localhost:5432/bacefook"
-
 # Generate Prisma client
 npm run db:generate
 
-# Push schema to database (creates tables)
-npm run db:push
-
-# Run the worker
-npm run dev
+# Apply database migrations
+npm run db:migrate
 ```
 
-## Environment Variables
-
-### Required
-- `DATABASE_URL`: PostgreSQL connection string for Prisma
-
-### Optional
-- `REDIS_HOST`: Redis server host (default: localhost)
-- `REDIS_PORT`: Redis server port (default: 6379)
-- `BATCH_SIZE`: Number of transactions to process at once (default: 10)
-- `QUEUE_NAME`: Redis queue name (default: transactions)
-
-## Output
-
-```
-Connected to Redis at localhost:6379
-Connected to PostgreSQL via Prisma
-Worker initialized
-Worker started with batch size: 10
-Processed 10 transactions
-Transaction types: { register: 6, addfriend: 3, referral: 1 }
-Processed 8 transactions
-Transaction types: { register: 5, unfriend: 2, addfriend: 1 }
-```
-
-## Database Operations
-
-The worker uses **Prisma ORM** for all database operations:
-
-- **Type-safe queries** - No raw SQL
-- **Automatic migrations** - Schema changes handled by Prisma
-- **Connection pooling** - Handled automatically
-- **Query optimization** - Built-in by Prisma
-
-### User Creation
-- Uses `upsert` operations to safely create or update users
-- Handles duplicate names gracefully
-- Ensures referential integrity
-
-## Development
+### Development
 
 ```bash
-# Generate Prisma client after schema changes
-npm run db:generate
-
-# Create and apply migrations
-npm run db:migrate
-
-# Push schema changes to database
-npm run db:push
-
-# Run with hot reload
+# Start the worker
 npm run dev
-```
-
-## Database Schema
-
-```prisma
-model User {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("users")
-}
 ```
 
 ## Architecture
@@ -102,9 +94,10 @@ model User {
 - **Worker**: Orchestrates the pipeline with error handling and monitoring
 - **Types**: Strong typing with runtime validation using type guards
 
-## Error Handling
+## Output
 
-- **Invalid transactions** are logged and skipped
-- **Database errors** are logged and cause graceful retries
-- **Connection issues** trigger exponential backoff
-- **Graceful shutdown** on SIGINT/SIGTERM
+The worker logs:
+- Connection status to Redis and PostgreSQL
+- Transaction processing progress
+- Database statistics (users, friendships, referrals, transactions)
+- Error messages and retry attempts

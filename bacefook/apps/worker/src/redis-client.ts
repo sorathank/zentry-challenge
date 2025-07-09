@@ -29,15 +29,24 @@ export class RedisClient {
   async popBatch(queueName: string, batchSize: number): Promise<ConnectionEvent[]> {
     const transactions: ConnectionEvent[] = [];
     
+    const pipeline = this.client.multi();
+    
     for (let i = 0; i < batchSize; i++) {
-      const transactionString = await this.client.rPop(queueName);
-      if (!transactionString) break;
-      
-      try {
-        const transaction = parseTransaction(transactionString);
-        transactions.push(transaction);
-      } catch (error) {
-        console.error(`Failed to parse transaction: ${error}. Raw data: ${transactionString}`);
+      pipeline.rPop(queueName);
+    }
+    
+    const results = await pipeline.exec();
+    
+    if (results) {
+      for (const result of results) {
+        if (result && typeof result === 'string') {
+          try {
+            const transaction = parseTransaction(result);
+            transactions.push(transaction);
+          } catch (error) {
+            console.error(`Failed to parse transaction: ${error}. Raw data: ${result}`);
+          }
+        }
       }
     }
     

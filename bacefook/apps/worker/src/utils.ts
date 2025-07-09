@@ -1,16 +1,10 @@
-import {
-  RegisterEvent,
-  ReferralEvent,
-  AddFriendEvent,
-  UnfriendEvent,
-  ConnectionEvent,
-} from "@repo/bacefook-core/types";
+import { ConnectionEvent } from "@repo/bacefook-core/types";
 
-export function isRegisterEvent(event: any): event is RegisterEvent {
+export function isRegisterEvent(event: any): boolean {
   return event?.type === "register" && typeof event?.name === "string";
 }
 
-export function isReferralEvent(event: any): event is ReferralEvent {
+export function isReferralEvent(event: any): boolean {
   return (
     event?.type === "referral" &&
     typeof event?.referredBy === "string" &&
@@ -18,7 +12,7 @@ export function isReferralEvent(event: any): event is ReferralEvent {
   );
 }
 
-export function isAddFriendEvent(event: any): event is AddFriendEvent {
+export function isAddFriendEvent(event: any): boolean {
   return (
     event?.type === "addfriend" &&
     typeof event?.user1_name === "string" &&
@@ -26,7 +20,7 @@ export function isAddFriendEvent(event: any): event is AddFriendEvent {
   );
 }
 
-export function isUnfriendEvent(event: any): event is UnfriendEvent {
+export function isUnfriendEvent(event: any): boolean {
   return (
     event?.type === "unfriend" &&
     typeof event?.user1_name === "string" &&
@@ -34,7 +28,7 @@ export function isUnfriendEvent(event: any): event is UnfriendEvent {
   );
 }
 
-export function isConnectionEvent(event: any): event is ConnectionEvent {
+export function isConnectionEvent(event: any): boolean {
   return (
     isRegisterEvent(event) ||
     isReferralEvent(event) ||
