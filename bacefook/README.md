@@ -217,7 +217,7 @@ After that, we can test the performance of worker (consuming event to DB) later
 
    ```text
     PRODUCER_NEW_USER_BATCH_SIZE=1000
-    WORKER_CONCURRENCY=1
+    INTERVAL=5000
     QUEUE_NAME=transactions
    ```
 
