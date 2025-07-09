@@ -255,93 +255,116 @@ export class DatabaseClient {
       const userMap = await this.ensureUsersExist(batchData.newUsers);
 
       // Execute all database operations in a single transaction
-      await this.prisma.$transaction(
-        async (tx) => {
-          // Bulk create referrals
-          if (batchData.referrals.length > 0) {
-            const referralData = batchData.referrals.map((ref) => ({
-              referrerId: userMap.get(ref.referrerId)!,
-              referredId: userMap.get(ref.referredId)!,
-            }));
+      await this.retryOnDeadlock(async () => {
+        await this.prisma.$transaction(
+          async (tx) => {
+            // Bulk create referrals using Prisma ORM
+            if (batchData.referrals.length > 0) {
+              const referralData = batchData.referrals.map((ref) => ({
+                referrerId: userMap.get(ref.referrerId)!,
+                referredId: userMap.get(ref.referredId)!,
+              }));
 
-            await tx.referral.createMany({
-              data: referralData,
-              skipDuplicates: true,
-            });
-          }
+              await tx.referral.createMany({
+                data: referralData,
+                skipDuplicates: true,
+              });
+            }
 
-          // Bulk handle friendships using raw SQL for maximum performance
-          if (batchData.friendships.length > 0) {
-            const friendshipData = batchData.friendships.map((friendship) => {
-              const user1Id = userMap.get(friendship.user1)!;
-              const user2Id = userMap.get(friendship.user2)!;
-              // Ensure consistent ordering
-              const [smallerId, largerId] =
-                user1Id < user2Id ? [user1Id, user2Id] : [user2Id, user1Id];
-              return { user1Id: smallerId, user2Id: largerId };
-            });
-
-            // Use raw SQL for bulk upsert - much faster than individual upserts
-            const friendshipValues = friendshipData
-              .map(
-                (f) => `(${f.user1Id}, ${f.user2Id}, 'ACTIVE', NOW(), NOW())`
-              )
-              .join(", ");
-
-            await tx.$executeRawUnsafe(`
-              INSERT INTO friendships (user1_id, user2_id, status, created_at, updated_at)
-              VALUES ${friendshipValues}
-              ON CONFLICT (user1_id, user2_id) 
-              DO UPDATE SET status = 'ACTIVE', updated_at = NOW()
-            `);
-          }
-
-          // Bulk handle unfriendships using raw SQL
-          if (batchData.unfriendships.length > 0) {
-            const unfriendshipData = batchData.unfriendships.map(
-              (unfriendship) => {
-                const user1Id = userMap.get(unfriendship.user1)!;
-                const user2Id = userMap.get(unfriendship.user2)!;
+            // Handle friendships using Prisma ORM upserts
+            if (batchData.friendships.length > 0) {
+              const friendshipData = batchData.friendships.map((friendship) => {
+                const user1Id = userMap.get(friendship.user1)!;
+                const user2Id = userMap.get(friendship.user2)!;
+                // Ensure consistent ordering
                 const [smallerId, largerId] =
                   user1Id < user2Id ? [user1Id, user2Id] : [user2Id, user1Id];
                 return { user1Id: smallerId, user2Id: largerId };
+              });
+
+              // Process friendships in parallel batches for better performance
+              const chunkSize = 100;
+              for (let i = 0; i < friendshipData.length; i += chunkSize) {
+                const chunk = friendshipData.slice(i, i + chunkSize);
+
+                await Promise.all(
+                  chunk.map((friendship) =>
+                    tx.friendship.upsert({
+                      where: {
+                        user1Id_user2Id: {
+                          user1Id: friendship.user1Id,
+                          user2Id: friendship.user2Id,
+                        },
+                      },
+                      update: {
+                        status: "ACTIVE",
+                        updatedAt: new Date(),
+                      },
+                      create: {
+                        user1Id: friendship.user1Id,
+                        user2Id: friendship.user2Id,
+                        status: "ACTIVE",
+                      },
+                    })
+                  )
+                );
               }
-            );
-
-            // Use raw SQL for bulk updates
-            const unfriendshipConditions = unfriendshipData
-              .map(
-                (u) => `(user1_id = ${u.user1Id} AND user2_id = ${u.user2Id})`
-              )
-              .join(" OR ");
-
-            if (unfriendshipConditions) {
-              await tx.$executeRawUnsafe(`
-                UPDATE friendships 
-                SET status = 'INACTIVE', updated_at = NOW()
-                WHERE (${unfriendshipConditions}) AND status = 'ACTIVE'
-              `);
             }
-          }
 
-          // Bulk create transaction logs
-          if (batchData.transactionLogs.length > 0) {
-            const logData = batchData.transactionLogs.map((log) => ({
-              userId: userMap.get(log.userName)!,
-              transactionType: log.type,
-              transactionData: log.data,
-            }));
+            // Handle unfriendships using Prisma ORM
+            if (batchData.unfriendships.length > 0) {
+              const unfriendshipData = batchData.unfriendships.map(
+                (unfriendship) => {
+                  const user1Id = userMap.get(unfriendship.user1)!;
+                  const user2Id = userMap.get(unfriendship.user2)!;
+                  const [smallerId, largerId] =
+                    user1Id < user2Id ? [user1Id, user2Id] : [user2Id, user1Id];
+                  return { user1Id: smallerId, user2Id: largerId };
+                }
+              );
 
-            await tx.transactionLog.createMany({
-              data: logData,
-            });
+              // Process unfriendships in parallel batches
+              const chunkSize = 100;
+              for (let i = 0; i < unfriendshipData.length; i += chunkSize) {
+                const chunk = unfriendshipData.slice(i, i + chunkSize);
+
+                await Promise.all(
+                  chunk.map((unfriendship) =>
+                    tx.friendship.updateMany({
+                      where: {
+                        user1Id: unfriendship.user1Id,
+                        user2Id: unfriendship.user2Id,
+                        status: "ACTIVE",
+                      },
+                      data: {
+                        status: "INACTIVE",
+                        updatedAt: new Date(),
+                      },
+                    })
+                  )
+                );
+              }
+            }
+
+            // Bulk create transaction logs using Prisma ORM
+            if (batchData.transactionLogs.length > 0) {
+              const logData = batchData.transactionLogs.map((log) => ({
+                userId: userMap.get(log.userName)!,
+                transactionType: log.type,
+                transactionData: log.data,
+              }));
+
+              await tx.transactionLog.createMany({
+                data: logData,
+              });
+            }
+          },
+          {
+            timeout: 60000, // 60 second timeout
+            isolationLevel: "ReadCommitted", // Less strict isolation to reduce deadlocks
           }
-        },
-        {
-          timeout: 60000, // 60 second timeout
-          isolationLevel: "ReadCommitted", // Less strict isolation to reduce deadlocks
-        }
-      );
+        );
+      }, 5); // Retry up to 5 times for deadlocks
 
       const processingTime = Date.now() - startTime;
       console.log(

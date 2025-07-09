@@ -29,12 +29,12 @@ export class Worker {
   async start(): Promise<void> {
     this.isRunning = true;
     this.startTime = Date.now();
-    
+
     console.log(`Worker started with ${this.concurrency} concurrent workers`);
     console.log(`Max batch size: ${this.maxBatchSize}`);
 
     // Start multiple worker processes in parallel
-    this.workers = Array.from({ length: this.concurrency }, (_, i) => 
+    this.workers = Array.from({ length: this.concurrency }, (_, i) =>
       this.workerProcess(i)
     );
 
@@ -47,11 +47,11 @@ export class Worker {
 
   private async workerProcess(workerId: number): Promise<void> {
     console.log(`Worker ${workerId} started`);
-    
+
     while (this.isRunning) {
       try {
         const startTime = Date.now();
-        
+
         const transactions: ConnectionEvent[] = await this.redisClient.popBatch(
           config.worker.queueName,
           this.maxBatchSize
@@ -59,24 +59,26 @@ export class Worker {
 
         if (transactions.length > 0) {
           // Process large batches in parallel chunks for better performance
-          // const chunkSize = Math.min(5000, Math.ceil(transactions.length / 4));
-          // const chunks = this.chunkArray(transactions, chunkSize);
-          
-          // if (chunks.length > 1) {
-          //   // Process chunks in parallel
-          //   await Promise.all(
-          //     chunks.map(chunk => this.databaseClient.processBatch(chunk))
-          //   );
-          // } else {
-          //   // Process single batch
+          const chunkSize = Math.min(5000, Math.ceil(transactions.length / 4));
+          const chunks = this.chunkArray(transactions, chunkSize);
+
+          if (chunks.length > 1) {
+            // Process chunks in parallel
+            await Promise.all(
+              chunks.map((chunk) => this.databaseClient.processBatch(chunk))
+            );
+          } else {
+            // Process single batch
             await this.databaseClient.processBatch(transactions);
-          // }
-          
+          }
+
           const processingTime = Date.now() - startTime;
           this.processedCount += transactions.length;
-          
-          console.log(`Worker ${workerId}: Processed ${transactions.length} transactions in ${processingTime}ms (${(transactions.length / processingTime * 1000).toFixed(0)} tx/s)`);
-          
+
+          console.log(
+            `Worker ${workerId}: Processed ${transactions.length} transactions in ${processingTime}ms (${((transactions.length / processingTime) * 1000).toFixed(0)} tx/s)`
+          );
+
           // Log transaction type distribution
           const typeCounts = transactions.reduce(
             (acc, tx) => {
@@ -95,7 +97,7 @@ export class Worker {
         await this.sleep(200); // Wait on error
       }
     }
-    
+
     console.log(`Worker ${workerId} stopped`);
   }
 
@@ -111,16 +113,28 @@ export class Worker {
     setInterval(() => {
       const elapsedSeconds = (Date.now() - this.startTime) / 1000;
       const transactionsPerSecond = this.processedCount / elapsedSeconds;
-      
-      console.log(`Performance: ${this.processedCount} transactions processed in ${elapsedSeconds.toFixed(1)}s`);
-      console.log(`Average rate: ${transactionsPerSecond.toFixed(0)} transactions/second`);
-      
+
+      console.log(
+        `Performance: ${this.processedCount} transactions processed in ${elapsedSeconds.toFixed(1)}s`
+      );
+      console.log(
+        `Average rate: ${transactionsPerSecond.toFixed(0)} transactions/second`
+      );
+
       // Log progress towards 100k in 5 seconds
       if (elapsedSeconds >= 5) {
         const targetIn5Seconds = 100000;
-        const actualIn5Seconds = Math.min(this.processedCount, targetIn5Seconds);
-        const percentage = (actualIn5Seconds / targetIn5Seconds * 100).toFixed(1);
-        console.log(`Progress towards 100k in 5s: ${actualIn5Seconds}/100000 (${percentage}%)`);
+        const actualIn5Seconds = Math.min(
+          this.processedCount,
+          targetIn5Seconds
+        );
+        const percentage = (
+          (actualIn5Seconds / targetIn5Seconds) *
+          100
+        ).toFixed(1);
+        console.log(
+          `Progress towards 100k in 5s: ${actualIn5Seconds}/100000 (${percentage}%)`
+        );
       }
     }, 2000); // Report every 2 seconds for better monitoring
   }
@@ -134,9 +148,9 @@ export class Worker {
     console.log("Worker stopped");
   }
 
-  async getStats(): Promise<{ 
-    queueLength: number; 
-    userCount: number; 
+  async getStats(): Promise<{
+    queueLength: number;
+    userCount: number;
     processedCount: number;
     transactionsPerSecond: number;
   }> {
@@ -146,12 +160,12 @@ export class Worker {
     const userCount = await this.databaseClient.getUserCount();
     const elapsedSeconds = (Date.now() - this.startTime) / 1000;
     const transactionsPerSecond = this.processedCount / elapsedSeconds;
-    
-    return { 
-      queueLength, 
-      userCount, 
+
+    return {
+      queueLength,
+      userCount,
       processedCount: this.processedCount,
-      transactionsPerSecond
+      transactionsPerSecond,
     };
   }
 
